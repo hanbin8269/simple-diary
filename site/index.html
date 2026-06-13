@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simple Diary — a private, local-first diary for Mac</title>
+<meta name="description" content="Opens straight to today. Every entry is a plain Markdown file on your own Mac, and past entries stay locked behind Touch ID. No servers, no accounts.">
+<meta property="og:title" content="Simple Diary — The diary that keeps to itself.">
+<meta property="og:description" content="Your words on your disk. Your past behind Touch ID. No servers, no accounts.">
+<meta property="og:image" content="/icon-512.png">
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+:root {
+  --accent: #D97757;
+  --accent-deep: #C05F3F;
+  --accent-soft: #F6E8E0;
+  --ink: #2A2520;
+  --ink-soft: #6B6258;
+  --prose: #4A4036;
+  --paper: #FAF9F5;
+  --line: #E9E4DB;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background-color: var(--paper);
+  /* 노트 종이처럼 얇은 가로 실선 */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 32px,
+    rgba(192,95,63,.06) 32px,
+    rgba(192,95,63,.06) 33px
+  );
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+.narrow { max-width: 640px; margin: 0 auto; padding: 0 24px; }
+
+/* ---- Nav ---- */
+header.site {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(250,249,245,.86); backdrop-filter: blur(12px);
+}
+header.site .wrap { display: flex; align-items: center; gap: 10px; height: 60px; }
+header.site img { width: 26px; height: 26px; }
+header.site .name { font-weight: 700; font-size: 15.5px; letter-spacing: -0.2px; }
+header.site a.ghlink {
+  margin-left: auto; font-size: 13.5px; font-weight: 600;
+  color: var(--ink-soft); text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+header.site a.ghlink:hover { color: var(--ink); }
+header.site a.dl {
+  margin-left: 22px; font-size: 13.5px; font-weight: 600;
+  color: var(--accent-deep); text-decoration: none;
+}
+header.site a.dl:hover { text-decoration: underline; }
+
+/* ---- Hero ---- */
+.hero { text-align: center; padding: 110px 0 64px; }
+.hero h1 {
+  font-size: clamp(40px, 6.6vw, 62px);
+  font-weight: 800; letter-spacing: -2.2px; line-height: 1.12;
+}
+.hero p.tagline {
+  font-size: 18.5px; color: var(--ink-soft);
+  margin: 26px auto 0; max-width: 580px; line-height: 1.75;
+}
+.cta { display: flex; gap: 16px; justify-content: center; align-items: center; margin-top: 36px; flex-wrap: wrap; }
+.btn {
+  display: inline-block; padding: 14px 30px; border-radius: 12px;
+  font-size: 15.5px; font-weight: 700; text-decoration: none;
+  background: var(--accent); color: #fff;
+  box-shadow: 0 6px 20px rgba(217,119,87,.28);
+  transition: transform .15s, background .15s;
+}
+.btn:hover { background: var(--accent-deep); transform: translateY(-1px); }
+.cta a.minor { font-size: 14px; color: var(--ink-soft); text-decoration: none; border-bottom: 1px solid var(--line); }
+.cta a.minor:hover { color: var(--accent-deep); border-color: var(--accent-deep); }
+.hero .req { margin-top: 18px; font-size: 12.5px; color: #9A9084; }
+
+/* ---- App mockup ---- */
+.mockup {
+  margin: 72px auto 0; max-width: 860px;
+  background: #fff; border-radius: 14px; border: 1px solid var(--line);
+  box-shadow: 0 40px 90px -30px rgba(42,37,32,.28);
+  overflow: hidden; text-align: left; font-size: 12px;
+}
+.mockup .titlebar { display: flex; align-items: center; padding: 11px 14px; gap: 6px; }
+.mockup .dot { width: 11px; height: 11px; border-radius: 50%; }
+.mockup .dot.r { background: #FF5F57; } .mockup .dot.y { background: #FEBC2E; } .mockup .dot.g { background: #28C840; }
+.mockup .share { margin-left: auto; color: #ABA095; font-size: 13px; }
+.mockup .split { display: flex; min-height: 420px; }
+.mockup .side {
+  width: 252px; flex-shrink: 0; background: #F5F2EC;
+  border-right: 1px solid var(--line); padding: 14px 16px;
+}
+.cal-head { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 12.5px; padding: 0 2px 8px; }
+.cal-head .chev { color: #ABA095; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal .wd { text-align: center; font-size: 9.5px; color: #9A9084; padding-bottom: 2px; }
+.cal .wd.sun { color: #D26B6B; } .cal .wd.sat { color: #6B8BD2; }
+.cal .d {
+  aspect-ratio: 1; border-radius: 5px; background: rgba(42,37,32,.05);
+  display: flex; align-items: center; justify-content: center; font-size: 9.5px; color: #8A7E74;
+}
+.cal .d.blank { background: transparent; }
+.cal .d.g1 { background: rgba(217,119,87,.30); color: #5A352A; font-weight: 600; }
+.cal .d.g2 { background: rgba(217,119,87,.55); color: #47281F; font-weight: 600; }
+.cal .d.g3 { background: rgba(217,119,87,.80); color: #fff; font-weight: 600; }
+.cal .d.g4 { background: var(--accent); color: #fff; font-weight: 600; }
+.cal .d.today { box-shadow: inset 0 0 0 1.5px var(--accent); font-weight: 700; }
+.side .sec { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 10px; }
+.side .sec-head { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-soft); font-weight: 600; }
+.side .sec-head .reveal { color: var(--accent-deep); }
+.side .lock { text-align: center; color: #ABA095; font-size: 10.5px; padding: 26px 0 14px; }
+.side .lock .ic { font-size: 15px; display: block; margin-bottom: 4px; }
+.mockup .editor { flex: 1; padding: 18px 24px; display: flex; flex-direction: column; }
+.mockup .editor .date { font-weight: 700; font-size: 15px; }
+.mockup .editor .body { margin-top: 12px; color: #463C33; font-size: 12.5px; line-height: 1.9; flex: 1; }
+.mockup .editor .body .caret { display: inline-block; width: 1.5px; height: 14px; background: var(--accent); vertical-align: -2px; animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.mockup .editor .status { display: flex; justify-content: space-between; color: #ABA095; font-size: 10.5px; }
+
+/* ---- Editorial statement ---- */
+section.statement { padding: 130px 0 0; }
+section.statement h2 {
+  font-size: clamp(28px, 4.6vw, 42px);
+  font-weight: 800; letter-spacing: -1.4px; line-height: 1.25;
+}
+section.statement p {
+  margin-top: 26px; font-size: 17px; color: var(--prose); line-height: 1.9;
+}
+.pullquote {
+  margin: 96px auto; text-align: center; padding: 0 24px;
+  font-size: clamp(22px, 3.4vw, 30px);
+  font-weight: 800; letter-spacing: -0.8px; color: var(--accent-deep);
+}
+
+/* ---- The two features ---- */
+section.features { padding: 20px 0 40px; }
+.feature {
+  display: flex; align-items: center; gap: 64px;
+  padding: 64px 0;
+}
+.feature:nth-child(even) { flex-direction: row-reverse; }
+.feature .text { flex: 1; }
+.feature .text .icon { font-size: 26px; }
+.feature .text h3 { font-size: 23px; font-weight: 800; letter-spacing: -0.5px; margin-top: 10px; }
+.feature .text p { font-size: 15.5px; color: var(--prose); line-height: 1.85; margin-top: 12px; }
+.feature .visual { flex: 1; display: flex; justify-content: center; }
+.v-card {
+  background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 24px 50px -24px rgba(42,37,32,.22); padding: 22px;
+}
+.v-lock { position: relative; width: 320px; }
+.v-lock .row { padding: 10px 4px; border-bottom: 1px solid var(--line); filter: blur(4px); user-select: none; }
+.v-lock .row:last-child { border-bottom: 0; }
+.v-lock .row b { font-size: 12.5px; }
+.v-lock .row span { font-size: 12px; color: var(--ink-soft); display: block; }
+.v-lock .badge {
+  position: absolute; inset: 0; display: flex;
+  align-items: center; justify-content: center;
+}
+.v-lock .badge .chip {
+  background: var(--ink); color: #fff; border-radius: 99px;
+  font-size: 12.5px; font-weight: 600; padding: 9px 18px;
+}
+.v-files { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 13px; line-height: 2.1; color: var(--ink-soft); }
+.v-files b { color: var(--ink); font-weight: 600; }
+.v-files .md { color: var(--accent-deep); }
+
+/* ---- Install ---- */
+section.install { padding: 110px 0; }
+section.install h2 { font-size: clamp(26px, 4vw, 36px); font-weight: 800; letter-spacing: -1px; }
+section.install > .narrow > p { margin-top: 14px; color: var(--prose); font-size: 16px; }
+.steps { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 44px; }
+.step { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 28px 26px; }
+.step h3 { font-size: 17px; font-weight: 800; }
+.step h3 .tag { font-size: 11px; background: var(--accent-soft); color: var(--accent-deep); border-radius: 99px; padding: 3px 10px; vertical-align: 2px; margin-left: 8px; font-weight: 700; }
+.step p { font-size: 13.5px; color: var(--ink-soft); margin-top: 8px; }
+.step ol { font-size: 13.5px; color: var(--prose); margin: 10px 0 0 18px; }
+.step ol li { margin-top: 6px; }
+.step a { color: var(--accent-deep); }
+pre {
+  background: #2B221C; color: #EADFD6; border-radius: 10px;
+  padding: 14px 16px; font-size: 12.5px; overflow-x: auto; margin-top: 12px;
+  font-family: "SF Mono", ui-monospace, Menlo, monospace; line-height: 1.7;
+}
+pre .c { color: #A89080; }
+.iphone-note {
+  margin-top: 18px; font-size: 13.5px; color: var(--ink-soft);
+  background: var(--accent-soft); border-radius: 12px; padding: 16px 20px;
+}
+
+footer { border-top: 1px solid var(--line); padding: 34px 0 44px; text-align: center; color: #9A9084; font-size: 13px; }
+footer a { color: var(--accent-deep); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+@media (max-width: 760px) {
+  .hero { padding-top: 72px; }
+  .mockup .split { flex-direction: column; }
+  .mockup .side { width: 100%; border-right: 0; border-bottom: 1px solid var(--line); }
+  .feature, .feature:nth-child(even) { flex-direction: column; gap: 28px; padding: 44px 0; }
+  .steps { grid-template-columns: 1fr; }
+  section.statement { padding-top: 90px; }
+  .pullquote { margin: 64px auto; }
+}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <img src="/icon-512.png" alt="">
+    <span class="name">Simple Diary</span>
+    <a class="ghlink" href="https://github.com/hanbin8269/simple-diary" target="_blank" rel="noopener">
+      <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 012-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+    <a class="dl" href="/SimpleDiary.dmg" download>Download for Mac ↓</a>
+  </div>
+</header>
+
+<section class="hero wrap">
+  <h1>A diary that<br>keeps to itself.</h1>
+  <p class="tagline">Simple Diary opens straight to today. Every entry lives as a plain file
+  on your own Mac — and everything you wrote before stays locked behind Touch&nbsp;ID.</p>
+  <div class="cta">
+    <a class="btn" href="/SimpleDiary.dmg" download>Download for Mac — Free</a>
+    <a class="minor" href="#install">How to install</a>
+  </div>
+  <p class="req">macOS 13+ · Apple Silicon · No servers, no accounts</p>
+
+  <div class="mockup" aria-hidden="true">
+    <div class="titlebar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="share">⬆</span>
+    </div>
+    <div class="split">
+      <div class="side">
+        <div class="cal-head"><span class="chev">‹</span><span>June 2026</span><span class="chev">›</span></div>
+        <div class="cal">
+          <span class="wd sun">S</span><span class="wd">M</span><span class="wd">T</span><span class="wd">W</span><span class="wd">T</span><span class="wd">F</span><span class="wd sat">S</span>
+          <span class="d g1">1</span><span class="d g2">2</span><span class="d">3</span><span class="d g2">4</span><span class="d g3">5</span><span class="d">6</span><span class="d g1">7</span>
+          <span class="d">8</span><span class="d g3">9</span><span class="d g2">10</span><span class="d g4">11</span><span class="d g3 today">12</span><span class="d blank"></span><span class="d blank"></span>
+          <span class="d blank"></span><span class="d blank"></span><span class="d blank"></span><span class="d blank"></span><span class="d blank"></span><span class="d blank"></span><span class="d blank"></span>
+        </div>
+        <div class="sec">
+          <div class="sec-head"><span>11 past entries</span><span class="reveal">👆 Show</span></div>
+          <div class="lock"><span class="ic">🔒</span>Past entries are locked</div>
+        </div>
+      </div>
+      <div class="editor">
+        <div class="date">Friday, June 12, 2026</div>
+        <div class="body">
+          Redesigned the diary's intro page today.<br>
+          There's a quiet joy in watching the calendar fill up, square by square.<span class="caret"></span>
+        </div>
+        <div class="status"><span>Autosaved</span><span>132 chars</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="statement narrow">
+  <h2>Most diary apps<br>want your data.</h2>
+  <p>They sync your most private thoughts to someone else's cloud, put an account between
+  you and your own words, and call it a feature. A diary deserves better defaults.
+  Simple Diary has no server to send your words to, and no login to forget —
+  there is simply nothing on our side, because there is no "our side."</p>
+</section>
+
+<div class="pullquote">No servers. No accounts. Nothing to leak.</div>
+
+<section class="features wrap" id="features">
+
+  <div class="feature">
+    <div class="text">
+      <span class="icon">🗂️</span>
+      <h3>Everything stays on your machine</h3>
+      <p>Each entry is a dated, plain Markdown file in a folder you can see, open, and copy —
+      synced between your devices by your own iCloud Drive, not by us.
+      Export everything to Markdown, text, or JSON anytime.
+      If this app disappears tomorrow, your diary doesn't.</p>
+    </div>
+    <div class="visual">
+      <div class="v-card v-files">
+        <b>iCloud Drive/</b><br>
+        &nbsp;&nbsp;<b>Simple Diary/</b><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<b>entries/</b><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="md">2026-06-10.md</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="md">2026-06-11.md</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="md">2026-06-12.md</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature">
+    <div class="text">
+      <span class="icon">🔒</span>
+      <h3>Yesterday stays behind Touch&nbsp;ID</h3>
+      <p>Past entries are hidden by default and only unlock with your fingerprint —
+      Face&nbsp;ID on iPhone. The lock snaps back every time the app launches,
+      so a shared screen or a glance over your shoulder never shows more than today.
+      Write like no one's reading. No one is.</p>
+    </div>
+    <div class="visual">
+      <div class="v-card v-lock">
+        <div class="row"><b>Tuesday, June 9</b><span>Rain all day, so I stayed in and read.</span></div>
+        <div class="row"><b>Friday, June 5</b><span>A long walk along the river after work.</span></div>
+        <div class="row"><b>Monday, June 1</b><span>First day of June. Started something new.</span></div>
+        <div class="badge"><span class="chip">🔒 Unlock with Touch ID</span></div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<section class="install" id="install">
+  <div class="narrow">
+    <h2>Install</h2>
+    <p>Two ways, pick whichever suits you.</p>
+  </div>
+  <div class="wrap">
+    <div class="steps">
+      <div class="step">
+        <h3>Download<span class="tag">Easy</span></h3>
+        <ol>
+          <li>Open <a href="/SimpleDiary.dmg" download>SimpleDiary.dmg</a> and drag
+          <b>Simple Diary</b> into the <b>Applications</b> folder.</li>
+          <li>If Chrome flags the download, click <b>⌃ → Keep</b> — it's just an uncommon file.</li>
+          <li>On first launch, if macOS warns you: <b>right-click → Open</b>, or allow it under
+          <b>System Settings → Privacy &amp; Security → "Open Anyway"</b>.</li>
+        </ol>
+        <p>It's a personal project shipped without Apple notarization — that's all the warnings are about.</p>
+      </div>
+      <div class="step">
+        <h3>Build from source<span class="tag">Dev</span></h3>
+        <p>No Xcode required — Command Line Tools are enough.</p>
+        <pre><span class="c"># from the project folder</span>
+./build.sh
+open "build/Simple Diary.app"
+
+<span class="c"># install to Applications</span>
+cp -R "build/Simple Diary.app" /Applications/</pre>
+      </div>
+    </div>
+    <div class="iphone-note">
+      📱 <b>On iPhone too</b> — a companion iOS app reads the same iCloud folder,
+      with the same Face&nbsp;ID lock. Not on the App Store yet, so it's a build-it-yourself
+      affair with Xcode (see the ios/ folder in the repo).
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    Simple Diary — a personal project built with SwiftUI ·
+    <a href="https://github.com/hanbin8269/simple-diary" target="_blank" rel="noopener">GitHub</a> · © 2026 hanbin
+  </div>
+</footer>
+
+</body>
+</html>

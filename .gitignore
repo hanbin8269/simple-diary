@@ -1,0 +1,8 @@
+.build/
+build/
+.DS_Store
+.vercel/
+ios/build/
+ios/*.xcodeproj/
+# 배포용 바이너리(빌드 산출물). make_dmg.sh로 재생성하며 Vercel CLI로 업로드한다.
+site/SimpleDiary.dmg
