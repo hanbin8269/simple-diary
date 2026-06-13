@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 메인 화면: 선택된 날짜(기본 오늘)의 글을 바로 쓰는 에디터
+/// Main screen: an editor for the selected day's entry (today by default).
 struct EditorScreen: View {
     @EnvironmentObject private var store: MobileStore
 
@@ -95,7 +95,7 @@ struct EditorScreen: View {
         text = store.text(for: key)
     }
 
-    /// 표시 중이던 글을 마무리 저장. 방금 삭제된 글이면 다시 만들지 않는다.
+    /// Finalizes the shown entry. Won't recreate one that was just deleted.
     private func finalizeLoadedEntry() {
         guard !loadedKey.isEmpty else { return }
         let stillExists = loadedKey == store.todayKey

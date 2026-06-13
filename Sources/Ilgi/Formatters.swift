@@ -1,7 +1,7 @@
 import Foundation
 
 enum Formatters {
-    /// 파일명/식별자용: "2026-06-11"
+    /// For filenames/identifiers: "2026-06-11"
     static let dateKey: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -11,7 +11,7 @@ enum Formatters {
         return formatter
     }()
 
-    /// "2026년 6월 11일 목요일"
+    /// Long Korean date, e.g. "2026년 6월 11일 목요일"
     static let longKorean: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
@@ -19,7 +19,7 @@ enum Formatters {
         return formatter
     }()
 
-    /// "6월 11일 목요일"
+    /// Short Korean date, e.g. "6월 11일 목요일"
     static let shortKorean: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
@@ -28,7 +28,7 @@ enum Formatters {
     }()
 }
 
-/// dateKey("2026-06-11")를 한국어 날짜 문자열로. 올해 일기는 연도를 생략한다.
+/// Converts a dateKey ("2026-06-11") to a Korean date string; omits the year for this year's entries.
 func koreanDate(forKey key: String, alwaysYear: Bool = false) -> String {
     guard let date = Formatters.dateKey.date(from: key) else { return key }
     let calendar = Calendar.current

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 우측 패널: 선택된 날짜의 글을 항상 표시하는 상시 에디터
+/// Right pane: an always-on editor showing the selected day's entry.
 struct EditorPane: View {
     @EnvironmentObject private var store: DiaryStore
 
@@ -57,7 +57,7 @@ struct EditorPane: View {
             editorFocused = true
         }
         .onChange(of: store.contentVersion) { _ in
-            // 가져오기 등으로 디스크 내용이 바뀌면 표시 중인 글을 다시 읽는다
+            // Reload the shown entry when disk contents change (e.g. after an import)
             text = store.text(for: loadedKey)
         }
         .onChange(of: text) { newValue in
@@ -90,7 +90,7 @@ struct EditorPane: View {
         text = store.text(for: key)
     }
 
-    /// 표시 중이던 글을 마무리 저장한다. 단, 방금 삭제된 글이면 다시 만들지 않는다.
+    /// Finalizes the shown entry. Won't recreate one that was just deleted.
     private func finalizeLoadedEntry() {
         guard !loadedKey.isEmpty else { return }
         let stillExists = loadedKey == store.todayKey

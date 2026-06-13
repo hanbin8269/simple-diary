@@ -1,7 +1,7 @@
 import Foundation
 
-// Day One 공식 내보내기(JSON 또는 JSON이 든 ZIP)를 읽어 날짜별 .md 파일로 변환한다.
-// AppKit에 의존하지 않는 순수 로직 — UI(파일 선택/알림)는 DiaryStore 쪽에 있다.
+// Reads a Day One export (JSON, or a ZIP containing JSON) and converts it to dated .md files.
+// Pure logic with no AppKit dependency — the UI (file picker / alerts) lives in DiaryStore.
 
 enum DayOneImportError: LocalizedError {
     case unzipFailed
@@ -21,9 +21,9 @@ enum DayOneImportError: LocalizedError {
 }
 
 struct DayOneImportSummary {
-    var sourceEntries = 0 // 파싱된 Day One 항목 수
-    var createdDays = 0   // 새로 만든 날짜 파일 수
-    var skippedDays = 0   // 이미 일기가 있어 건너뛴 날 수
+    var sourceEntries = 0 // number of parsed Day One entries
+    var createdDays = 0   // number of new date files created
+    var skippedDays = 0   // days skipped because an entry already existed
     var backupURL: URL?
 }
 
@@ -55,7 +55,7 @@ enum DayOneImporter {
         isoPlain.date(from: string) ?? isoFractional.date(from: string)
     }
 
-    /// source(.json 또는 .zip)를 entriesDir에 날짜별 파일로 가져온다.
+    /// Imports source (.json or .zip) into entriesDir as dated files.
     static func run(source: URL, entriesDir: URL) throws -> DayOneImportSummary {
         let fm = FileManager.default
 
@@ -72,7 +72,7 @@ enum DayOneImporter {
 
         guard !jsonURLs.isEmpty else { throw DayOneImportError.noJSONFound }
 
-        // Day One 항목 → 날짜키별 세그먼트 (항목의 타임존 기준 현지 날짜로 묶는다)
+        // Day One entries → segments per date key (bucketed by each entry's time-zone-local date)
         struct Segment {
             let date: Date
             let timeLabel: String
@@ -85,7 +85,7 @@ enum DayOneImporter {
             guard let data = try? Data(contentsOf: jsonURL) else {
                 throw DayOneImportError.unreadable(jsonURL.lastPathComponent)
             }
-            // 저널이 아닌 json(메타데이터 등)은 조용히 무시
+            // Silently ignore non-journal JSON (metadata, etc.)
             guard let journal = try? JSONDecoder().decode(Journal.self, from: data),
                   let entries = journal.entries else { continue }
 
@@ -125,7 +125,7 @@ enum DayOneImporter {
             if ordered.count == 1 {
                 body = ordered[0].text
             } else {
-                // 하루에 여러 항목이면 시간 라벨을 붙여 병합
+                // Multiple entries on one day are merged with time labels
                 body = ordered.map { "[\($0.timeLabel)]\n\($0.text)" }.joined(separator: "\n\n")
             }
             try body.write(to: destination, atomically: true, encoding: .utf8)
@@ -137,7 +137,7 @@ enum DayOneImporter {
         return summary
     }
 
-    /// Day One 본문 정리: 첨부 모먼트는 라벨로, 이스케이프된 문장부호는 복원
+    /// Clean up Day One body text: attachment moments become labels, escaped punctuation is restored.
     static func cleanText(_ raw: String) -> String {
         var text = raw
         text = text.replacingOccurrences(
@@ -155,7 +155,7 @@ enum DayOneImporter {
         text = text.replacingOccurrences(
             of: #"!\[\]\(dayone-moment:[^)]*\)"#,
             with: "(첨부)", options: .regularExpression)
-        // Day One이 마크다운 문장부호 앞에 붙이는 백슬래시 제거: "\." → "."
+        // Remove the backslash Day One adds before Markdown punctuation: "\." → "."
         text = text.replacingOccurrences(
             of: #"\\([\\`*_{}\[\]()#+\-.!>~"'])"#,
             with: "$1", options: .regularExpression)

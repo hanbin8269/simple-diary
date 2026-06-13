@@ -4,7 +4,7 @@ import SwiftUI
 struct IlgiMobileApp: App {
     @StateObject private var store = MobileStore.shared
     @Environment(\.scenePhase) private var scenePhase
-    // 테마 변경 시 전체 뷰 트리를 다시 그리기 위한 의존성
+    // Dependency to redraw the whole view tree when the theme changes
     @AppStorage(Theme.storageKey) private var themeID = ColorTheme.claude.rawValue
 
     var body: some Scene {

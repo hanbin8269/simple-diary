@@ -3,7 +3,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct DiaryEntry: Identifiable, Equatable {
-    let dateKey: String // "2026-06-11", 하루에 한 개
+    let dateKey: String // "2026-06-11", one per day
     var text: String
     var modifiedAt: Date
 
@@ -39,20 +39,20 @@ enum ExportFormat {
 final class DiaryStore: ObservableObject {
     static let shared = DiaryStore()
 
-    @Published private(set) var entries: [DiaryEntry] = [] // 최신순
-    /// 우측 에디터에 표시 중인 날짜
+    @Published private(set) var entries: [DiaryEntry] = [] // newest first
+    /// The date currently shown in the right-hand editor
     @Published var selectedDateKey: String
-    /// 지난 일기 잠금 해제 상태. 저장하지 않으므로 앱을 켤 때마다 다시 잠긴다.
+    /// Whether past entries are unlocked. Not persisted, so it re-locks on every launch.
     @Published var pastRevealed = false
-    /// Touch ID 인증 진행 중 여부 (버튼 비활성화용)
+    /// Whether Touch ID auth is in progress (to disable the button)
     @Published var unlockInProgress = false
-    /// 디스크에서 다시 읽을 때마다 증가 — 에디터가 표시 중인 텍스트를 갱신하는 신호
+    /// Increments on every disk reload — signals the editor to refresh the shown text
     @Published private(set) var contentVersion = 0
 
-    /// 현재 저장 폴더(.md 파일들이 놓이는 곳). 사용자가 바꾸면 갱신된다.
+    /// Current storage folder (where .md files live). Updated when the user changes it.
     @Published private(set) var directory: URL
 
-    /// 사용자가 직접 지정한 폴더 경로 키 (없으면 기본 위치)
+    /// UserDefaults key for the user-chosen folder path (absent = default location)
     static let customDirKey = "customDataDir"
     static let appFolderName = "Simple Diary"
 
@@ -64,14 +64,14 @@ final class DiaryStore: ObservableObject {
         let env = ProcessInfo.processInfo.environment["ILGI_DATA_DIR"]
         directory = Self.resolveDirectory()
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        // 기본 위치를 쓸 때만 예전 Ilgi 폴더에서 새 Simple Diary 폴더로 이전한다
+        // Migrate from the old Ilgi folder to the new Simple Diary folder only when using the default location
         if (env == nil || env!.isEmpty), Self.customDirectory() == nil {
             Self.migrateLegacyEntries(to: directory)
         }
         reload()
     }
 
-    /// 우선순위: 환경변수(테스트) → 사용자 지정 폴더 → 기본 위치
+    /// Priority: env var (testing) → user-chosen folder → default location
     private static func resolveDirectory() -> URL {
         if let override = ProcessInfo.processInfo.environment["ILGI_DATA_DIR"], !override.isEmpty {
             return URL(fileURLWithPath: override, isDirectory: true)
@@ -80,7 +80,7 @@ final class DiaryStore: ObservableObject {
         return defaultDirectory()
     }
 
-    /// 사용자가 지정한 저장 폴더 (없으면 nil)
+    /// The user-chosen storage folder (nil if unset)
     static func customDirectory() -> URL? {
         guard let path = UserDefaults.standard.string(forKey: customDirKey), !path.isEmpty else { return nil }
         return URL(fileURLWithPath: path, isDirectory: true)
@@ -88,7 +88,7 @@ final class DiaryStore: ObservableObject {
 
     var isUsingCustomDirectory: Bool { Self.customDirectory() != nil }
 
-    /// 기본 저장 위치: iCloud Drive(켜져 있으면) → 아니면 로컬 Application Support
+    /// Default location: iCloud Drive (if on) → otherwise local Application Support
     static func defaultDirectory() -> URL {
         let cloudDocs = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs", isDirectory: true)
@@ -98,7 +98,7 @@ final class DiaryStore: ObservableObject {
         return base.appendingPathComponent("\(appFolderName)/entries", isDirectory: true)
     }
 
-    /// 예전 "Ilgi" 폴더(iCloud·로컬)에 있던 일기를 새 기본 폴더로 옮긴다.
+    /// Moves entries from the old "Ilgi" folder (iCloud / local) into the new default folder.
     private static func migrateLegacyEntries(to directory: URL) {
         let fm = FileManager.default
         let home = fm.homeDirectoryForCurrentUser
@@ -118,18 +118,18 @@ final class DiaryStore: ObservableObject {
                     try fm.moveItem(at: file, to: destination)
                     moved += 1
                 } catch {
-                    NSLog("일기 마이그레이션 실패(\(file.lastPathComponent)): \(error)")
+                    NSLog("entry migration failed (\(file.lastPathComponent)): \(error)")
                 }
             }
         }
         if moved > 0 {
-            NSLog("일기 \(moved)개를 새 폴더로 옮겼습니다: \(directory.path)")
+            NSLog("moved \(moved) entries to the new folder: \(directory.path)")
         }
     }
 
-    // MARK: - 저장 폴더 변경
+    // MARK: - Changing the storage folder
 
-    /// 사용자가 고른 폴더로 저장 위치를 바꾼다. 기존 일기도 함께 옮긴다.
+    /// Switches storage to the user-chosen folder, moving existing entries along.
     func changeDirectory(to newDir: URL) {
         flushPendingSave()
         try? FileManager.default.createDirectory(at: newDir, withIntermediateDirectories: true)
@@ -140,7 +140,7 @@ final class DiaryStore: ObservableObject {
         reload()
     }
 
-    /// 기본(iCloud) 위치로 되돌린다. 기존 일기도 함께 옮긴다.
+    /// Resets to the default (iCloud) location, moving existing entries along.
     func resetDirectoryToDefault() {
         flushPendingSave()
         let def = Self.defaultDirectory()
@@ -152,7 +152,7 @@ final class DiaryStore: ObservableObject {
         reload()
     }
 
-    /// .md 파일을 src에서 dst로 옮긴다(같은 이름이 있으면 건드리지 않음).
+    /// Moves .md files from src to dst (leaves any same-named file untouched).
     private static func moveEntries(from src: URL, to dst: URL) {
         let fm = FileManager.default
         guard src.path != dst.path else { return }
@@ -164,7 +164,7 @@ final class DiaryStore: ObservableObject {
         }
     }
 
-    // MARK: - 조회
+    // MARK: - Queries
 
     var todayKey: String { Formatters.dateKey.string(from: Date()) }
 
@@ -180,7 +180,7 @@ final class DiaryStore: ObservableObject {
         selectedDateKey = todayKey
     }
 
-    /// 지난 일기 잠금을 해제한 뒤 onSuccess를 실행한다. 이미 해제됐으면 바로 실행.
+    /// Unlocks past entries then runs onSuccess. Runs immediately if already unlocked.
     func revealPast(onSuccess: @escaping () -> Void = {}) {
         if pastRevealed {
             onSuccess()
@@ -198,7 +198,7 @@ final class DiaryStore: ObservableObject {
         }
     }
 
-    // MARK: - 저장/삭제
+    // MARK: - Save / delete
 
     private func fileURL(for dateKey: String) -> URL {
         directory.appendingPathComponent("\(dateKey).md")
@@ -226,12 +226,12 @@ final class DiaryStore: ObservableObject {
     func save(_ text: String, for dateKey: String) {
         let isEmpty = text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let exists = entries.contains { $0.dateKey == dateKey }
-        if isEmpty && !exists { return } // 빈 일기는 파일을 만들지 않는다
+        if isEmpty && !exists { return } // don't create a file for an empty entry
 
         do {
             try text.write(to: fileURL(for: dateKey), atomically: true, encoding: .utf8)
         } catch {
-            NSLog("일기 저장 실패(\(dateKey)): \(error)")
+            NSLog("entry save failed (\(dateKey)): \(error)")
             return
         }
 
@@ -244,7 +244,7 @@ final class DiaryStore: ObservableObject {
         }
     }
 
-    /// 타이핑 도중 호출되는 디바운스 자동 저장
+    /// Debounced autosave called while typing
     func scheduleSave(_ text: String, for dateKey: String) {
         pendingSave = (text, dateKey)
         saveWorkItem?.cancel()
@@ -259,13 +259,13 @@ final class DiaryStore: ObservableObject {
         save(pending.text, for: pending.dateKey)
     }
 
-    /// 앱 종료 직전 등, 예약된 저장을 즉시 반영
+    /// Flush a pending save immediately (e.g. just before app termination)
     func flushPendingSave() {
         saveWorkItem?.cancel()
         commitPendingSave()
     }
 
-    /// 에디터를 닫을 때 호출. 내용이 비었으면 일기 자체를 정리한다.
+    /// Called when closing the editor. Cleans up the entry if it's empty.
     func finalize(_ text: String, for dateKey: String) {
         saveWorkItem?.cancel()
         pendingSave = nil
@@ -288,7 +288,7 @@ final class DiaryStore: ObservableObject {
         }
     }
 
-    // MARK: - 내보내기
+    // MARK: - Export
 
     func export(_ format: ExportFormat) {
         guard !entries.isEmpty else { return }
@@ -361,7 +361,7 @@ final class DiaryStore: ObservableObject {
         }
     }
 
-    // MARK: - Day One 가져오기
+    // MARK: - Day One import
 
     func importFromDayOne() {
         let panel = NSOpenPanel()
@@ -403,7 +403,7 @@ final class DiaryStore: ObservableObject {
         }
     }
 
-    /// 가져오기 전에 기존 일기 전체를 백업한다. 일기가 없으면 nil.
+    /// Backs up all existing entries before an import. Returns nil if there are none.
     private func backupEntries() throws -> URL? {
         let fm = FileManager.default
         let files = ((try? fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? [])

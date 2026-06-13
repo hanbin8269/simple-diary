@@ -1,6 +1,6 @@
-// 앱 아이콘(1024px PNG) 생성 스크립트 — 초록 잎사귀.
-// 사용: swift scripts/make_icon.swift <출력경로.png> [--ios]
-//   --ios: 마진/라운드 없는 풀블리드 사각형 (iOS가 모서리를 알아서 깎는다)
+// App icon (1024px PNG) generator — terracotta leaf.
+// Usage: swift scripts/make_icon.swift <output-path.png> [--ios]
+//   --ios: full-bleed square with no margin/rounding (iOS rounds the corners itself)
 import AppKit
 
 let iosMode = CommandLine.arguments.contains("--ios")
@@ -15,17 +15,17 @@ guard let rep = NSBitmapImageRep(
     colorSpaceName: .deviceRGB,
     bytesPerRow: 0, bitsPerPixel: 0
 ) else {
-    fatalError("비트맵 생성 실패")
+    fatalError("failed to create bitmap")
 }
 rep.size = NSSize(width: S, height: S)
 
 guard let context = NSGraphicsContext(bitmapImageRep: rep) else {
-    fatalError("그래픽 컨텍스트 생성 실패")
+    fatalError("failed to create graphics context")
 }
 NSGraphicsContext.saveGraphicsState()
 NSGraphicsContext.current = context
 
-// 2차 곡선을 3차 곡선으로 근사하는 헬퍼
+// Helper that approximates a quadratic curve with a cubic one
 func quadCurve(_ path: NSBezierPath, to end: NSPoint, control: NSPoint) {
     let start = path.currentPoint
     let cp1 = NSPoint(x: start.x + (control.x - start.x) * 2 / 3,
@@ -35,18 +35,18 @@ func quadCurve(_ path: NSBezierPath, to end: NSPoint, control: NSPoint) {
     path.curve(to: end, controlPoint1: cp1, controlPoint2: cp2)
 }
 
-// 배경: 옅은 연둣빛 종이 느낌 (macOS는 라운드+마진, iOS는 풀블리드)
+// Background: soft ivory paper (macOS rounded + margin, iOS full-bleed)
 let inset: CGFloat = iosMode ? 0 : 100
 let bgRect = NSRect(x: inset, y: inset, width: S - inset * 2, height: S - inset * 2)
 let bgPath = iosMode
     ? NSBezierPath(rect: bgRect)
     : NSBezierPath(roundedRect: bgRect, xRadius: 185, yRadius: 185)
 NSGradient(colors: [
-    NSColor(calibratedRed: 0.980, green: 0.976, blue: 0.961, alpha: 1), // 클로드 아이보리
+    NSColor(calibratedRed: 0.980, green: 0.976, blue: 0.961, alpha: 1), // Claude ivory
     NSColor(calibratedRed: 0.929, green: 0.902, blue: 0.855, alpha: 1),
 ])!.draw(in: bgPath, angle: -90)
 
-// 잎사귀 기하: 대각선 축 (아래왼쪽 base → 위오른쪽 tip)
+// Leaf geometry: diagonal axis (bottom-left base → top-right tip)
 let base = NSPoint(x: 350, y: 320)
 let tip = NSPoint(x: 690, y: 715)
 let mid = NSPoint(x: (base.x + tip.x) / 2, y: (base.y + tip.y) / 2)
@@ -58,9 +58,9 @@ let halfWidth: CGFloat = 160
 let controlLeft = NSPoint(x: mid.x + perp.x * halfWidth, y: mid.y + perp.y * halfWidth)
 let controlRight = NSPoint(x: mid.x - perp.x * halfWidth, y: mid.y - perp.y * halfWidth)
 
-let stemColor = NSColor(calibratedRed: 0.659, green: 0.306, blue: 0.196, alpha: 1) // 진한 테라코타
+let stemColor = NSColor(calibratedRed: 0.659, green: 0.306, blue: 0.196, alpha: 1) // deep terracotta
 
-// 줄기 (잎 아래로 살짝 뻗는 곡선)
+// Stem (a slight curve extending below the leaf)
 let stem = NSBezierPath()
 stem.lineWidth = 20
 stem.lineCapStyle = .round
@@ -69,7 +69,7 @@ quadCurve(stem, to: base, control: NSPoint(x: base.x - 12, y: base.y - 48))
 stemColor.setStroke()
 stem.stroke()
 
-// 잎 본체
+// Leaf body
 let leaf = NSBezierPath()
 leaf.move(to: base)
 quadCurve(leaf, to: tip, control: controlLeft)
@@ -86,13 +86,13 @@ NSColor(calibratedRed: 0.851, green: 0.467, blue: 0.341, alpha: 1).setFill() // 
 leaf.fill()
 NSGraphicsContext.restoreGraphicsState()
 
-// 잎 그라데이션: 끝(밝음) → 밑(진함), 클로드 테라코타 톤
+// Leaf gradient: tip (light) → base (dark), Claude terracotta tones
 NSGradient(colors: [
     NSColor(calibratedRed: 0.922, green: 0.631, blue: 0.510, alpha: 1), // #EBA182
     NSColor(calibratedRed: 0.753, green: 0.373, blue: 0.247, alpha: 1), // #C05F3F
 ])!.draw(in: leaf, angle: 229)
 
-// 잎맥: 가운데 큰 맥 + 좌우 잔맥
+// Veins: a central main vein + smaller side veins
 let veinColor = NSColor.white.withAlphaComponent(0.50)
 let mainVein = NSBezierPath()
 mainVein.lineWidth = 12
@@ -108,7 +108,7 @@ for (t, sideSign) in [(0.28, 1.0), (0.46, -1.0), (0.62, 1.0), (0.78, -1.0)] {
     let sign = CGFloat(sideSign)
     let p = NSPoint(x: base.x + axis.x * t + perp.x * 22 * t, y: base.y + axis.y * t + perp.y * 22 * t)
     let len: CGFloat = 105 * (1.05 - abs(t - 0.5))
-    // 잔맥 방향: 축에서 바깥쪽으로 40도 기울임
+    // Side-vein direction: tilted 40° outward from the axis
     let angle: CGFloat = 40 * .pi / 180
     let dir = NSPoint(
         x: unit.x * cos(angle) - sign * perp.x * sin(angle) * -1,
@@ -129,7 +129,7 @@ NSGraphicsContext.current?.flushGraphics()
 NSGraphicsContext.restoreGraphicsState()
 
 guard let png = rep.representation(using: .png, properties: [:]) else {
-    fatalError("PNG 인코딩 실패")
+    fatalError("PNG encoding failed")
 }
 try! png.write(to: URL(fileURLWithPath: outPath))
-print("아이콘 생성: \(outPath)")
+print("Icon written: \(outPath)")

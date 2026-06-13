@@ -1,20 +1,20 @@
-# dmgbuild 설정 — Simple Diary 설치 창 레이아웃
+# dmgbuild config — Simple Diary install-window layout
 import os.path
 
 app = os.path.abspath("build/Simple Diary.app")
 appname = os.path.basename(app)
 
-# 출력 형식: 압축 읽기전용
+# Output format: compressed read-only
 format = "UDZO"
 
-# 담을 항목 + Applications 심볼릭 링크
+# Bundled items + Applications symlink
 files = [app]
 symlinks = {"Applications": "/Applications"}
 
-# 마운트된 디스크의 볼륨 아이콘 = 앱 아이콘(잎사귀)
+# Volume icon of the mounted disk = the app icon (leaf)
 badge_icon = os.path.abspath("build/AppIcon.icns")
 
-# 창/아이콘 배치 (배경 디자인 좌표 640x400과 일치)
+# Window/icon layout (matches the 640x400 background design coordinates)
 background = os.path.abspath("build/dmg-bg.tiff")
 window_rect = ((360, 220), (640, 400))
 default_view = "icon-view"

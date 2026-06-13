@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 선택 가능한 색 테마. 이름은 영어로 표기한다. 기본값은 Claude(테라코타).
+/// Selectable color themes. Names are shown in English. Default is Claude (terracotta).
 enum ColorTheme: String, CaseIterable, Identifiable {
     case claude
     case leaf
@@ -49,7 +49,7 @@ enum ColorTheme: String, CaseIterable, Identifiable {
     }
 }
 
-/// 현재 선택된 테마의 색. 뷰들은 이걸 읽고, 루트 뷰가 테마 변경 시 트리를 다시 그린다.
+/// Colors for the current theme. Views read this; the root view redraws the tree on theme change.
 enum Theme {
     static let storageKey = "colorTheme"
 
@@ -61,7 +61,7 @@ enum Theme {
     static var accentLight: Color { current.accentLight }
 }
 
-/// 테마 선택 스와치 그리드 (macOS 설정 창과 iOS 시트에서 공용)
+/// Theme swatch grid (shared by the macOS Settings window and the iOS sheet).
 struct ThemeSwatchPicker: View {
     @AppStorage(Theme.storageKey) private var themeID = ColorTheme.claude.rawValue
 

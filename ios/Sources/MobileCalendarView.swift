@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// 잔디 스타일 월 캘린더 (터치 크기로 키운 iOS 버전)
+/// Grass-style month calendar (iOS version scaled up for touch).
 struct MobileCalendarView: View {
     @EnvironmentObject private var store: MobileStore
     @State private var monthAnchor = Date()
-    /// 날짜를 골라 에디터로 이동할 때 호출 (시트 닫기용)
+    /// Called when a date is picked to move to the editor (to dismiss the sheet).
     let onPicked: () -> Void
 
     init(onPicked: @escaping () -> Void = {}) {

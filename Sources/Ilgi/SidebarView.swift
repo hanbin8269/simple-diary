@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 좌측 패널: 위에는 잔디 캘린더, 아래에는 잠금 처리된 최근 글 목록
+/// Left pane: grass calendar on top, locked recent-entries list below.
 struct SidebarView: View {
     @EnvironmentObject private var store: DiaryStore
     @State private var pendingDelete: DiaryEntry?

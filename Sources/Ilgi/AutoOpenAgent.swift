@@ -1,6 +1,6 @@
 import Foundation
 
-/// 매일 정해진 시간에 앱을 여는 launchd 로그인 에이전트를 관리한다.
+/// Manages a launchd login agent that opens the app at a set time each day.
 enum AutoOpenAgent {
     static let label = "com.hanbin.ilgi.autoopen"
 
@@ -9,7 +9,7 @@ enum AutoOpenAgent {
             .appendingPathComponent("Library/LaunchAgents/\(label).plist")
     }
 
-    /// 매일 hour:minute에 앱을 열도록 등록(이미 있으면 갱신)
+    /// Register opening the app daily at hour:minute (updates an existing one).
     static func install(hour: Int, minute: Int) throws {
         try FileManager.default.createDirectory(
             at: plistURL.deletingLastPathComponent(),
@@ -18,7 +18,7 @@ enum AutoOpenAgent {
 
         let plist: [String: Any] = [
             "Label": label,
-            // 번들 ID로 열면 앱을 옮겨도 경로가 깨지지 않는다
+            // Opening by bundle ID survives moving the app
             "ProgramArguments": ["/usr/bin/open", "-b", "com.hanbin.ilgi"],
             "StartCalendarInterval": ["Hour": hour, "Minute": minute],
             "RunAtLoad": false,
@@ -26,7 +26,7 @@ enum AutoOpenAgent {
         let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
         try data.write(to: plistURL, options: .atomic)
 
-        run(["bootout", "gui/\(getuid())/\(label)"]) // 기존 등록 제거(없으면 무시)
+        run(["bootout", "gui/\(getuid())/\(label)"]) // remove any existing registration (ignored if absent)
         let status = run(["bootstrap", "gui/\(getuid())", plistURL.path])
         guard status == 0 else {
             throw NSError(
@@ -36,7 +36,7 @@ enum AutoOpenAgent {
         }
     }
 
-    /// 자동 열기 해제
+    /// Disable auto-open
     static func uninstall() {
         run(["bootout", "gui/\(getuid())/\(label)"])
         try? FileManager.default.removeItem(at: plistURL)

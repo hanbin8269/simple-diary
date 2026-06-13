@@ -32,7 +32,7 @@ struct IlgiApp: App {
             }
         }
 
-        // 일기장 메뉴 → 설정… (⌘,): 테마·저장 위치·자동 열기
+        // App menu → Settings… (⌘,): theme, storage location, auto-open
         Settings {
             SettingsView()
                 .environmentObject(store)

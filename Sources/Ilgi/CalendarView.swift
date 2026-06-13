@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// 홈에 표시되는 월 캘린더. 일기를 쓴 날은 글자 수에 따라 잔디처럼 진하게 칠해진다.
+/// Month calendar shown on the home screen. Days with entries are shaded like grass by length.
 struct MonthCalendarView: View {
     @EnvironmentObject private var store: DiaryStore
-    @State private var monthAnchor = Date() // 표시 중인 달의 임의 날짜
+    @State private var monthAnchor = Date() // any date within the displayed month
 
     private static let monthTitle: DateFormatter = {
         let formatter = DateFormatter()
@@ -31,7 +31,7 @@ struct MonthCalendarView: View {
         .frame(width: gridWidth)
     }
 
-    // MARK: - 달 이동
+    // MARK: - Month navigation
 
     private var monthStart: Date {
         calendar.date(from: calendar.dateComponents([.year, .month], from: monthAnchor)) ?? monthAnchor
@@ -74,10 +74,10 @@ struct MonthCalendarView: View {
         .frame(width: gridWidth)
     }
 
-    // MARK: - 요일/날짜 그리드
+    // MARK: - Weekday / day grid
 
     private var weekdaySymbols: [(symbol: String, weekday: Int)] {
-        let symbols = calendar.veryShortWeekdaySymbols // [일, 월, ..., 토]
+        let symbols = calendar.veryShortWeekdaySymbols // [Sun, Mon, ..., Sat]
         return (0..<7).map { offset in
             let weekday = (calendar.firstWeekday - 1 + offset) % 7 + 1
             return (symbols[weekday - 1], weekday)
@@ -99,7 +99,7 @@ struct MonthCalendarView: View {
         }
     }
 
-    /// 앞뒤를 nil로 채운, 7의 배수 길이의 날짜 배열
+    /// Day array padded with nil at both ends, length a multiple of 7
     private var dayCells: [Int?] {
         let dayCount = calendar.range(of: .day, in: .month, for: monthStart)?.count ?? 30
         let firstWeekday = calendar.component(.weekday, from: monthStart)
@@ -144,7 +144,7 @@ struct MonthCalendarView: View {
         return Formatters.dateKey.string(from: date)
     }
 
-    /// 오늘은 바로, 지난 일기는 잠금 해제(Touch ID)를 거쳐 선택한다.
+    /// Today opens immediately; past entries go through the Touch ID unlock first.
     private func open(dateKey: String, hasEntry: Bool) {
         if dateKey == store.todayKey {
             store.selectToday()
@@ -157,7 +157,7 @@ struct MonthCalendarView: View {
 
 private struct DayCell: View {
     let day: Int
-    let chars: Int? // nil이면 일기 없음
+    let chars: Int? // nil means no entry
     let isToday: Bool
     let isSelected: Bool
     let isFuture: Bool
@@ -167,7 +167,7 @@ private struct DayCell: View {
 
     private var clickable: Bool { isToday || (chars != nil && !isFuture) }
 
-    /// 깃허브 잔디처럼 글자 수에 따라 4단계로 진해진다
+    /// Darkens in 4 steps by character count, GitHub-grass style
     private func intensity(_ chars: Int) -> Double {
         switch chars {
         case ..<100: return 0.30

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 잔디 캘린더 + (Face ID 뒤의) 지난 일기 목록 시트
+/// Sheet with the grass calendar + the past-entries list (behind Face ID).
 struct BrowserSheet: View {
     @EnvironmentObject private var store: MobileStore
     @Environment(\.dismiss) private var dismiss

@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 struct DiaryEntry: Identifiable, Equatable {
-    let dateKey: String // "2026-06-12", 하루에 한 개
+    let dateKey: String // "2026-06-12", one per day
     var text: String
     var modifiedAt: Date
 
@@ -17,11 +17,11 @@ struct DiaryEntry: Identifiable, Equatable {
     }
 }
 
-/// Mac 일기장과 같은 iCloud Drive 폴더(Ilgi/entries)를 보안 북마크로 접근하는 저장소.
+/// Store that accesses the same iCloud Drive folder as the Mac app (Simple Diary/entries) via a security bookmark.
 final class MobileStore: ObservableObject {
     static let shared = MobileStore()
 
-    @Published private(set) var entries: [DiaryEntry] = [] // 최신순
+    @Published private(set) var entries: [DiaryEntry] = [] // newest first
     @Published var selectedDateKey: String
     @Published var pastRevealed = false
     @Published var unlockInProgress = false
@@ -39,7 +39,7 @@ final class MobileStore: ObservableObject {
 
     private init() {
         selectedDateKey = Formatters.dateKey.string(from: Date())
-        // 시뮬레이터/테스트용: 앱 Documents 폴더를 저장소로 사용
+        // Simulator/testing: use the app's Documents folder as the store
         if ProcessInfo.processInfo.environment["ILGI_USE_LOCAL"] == "1" {
             folderURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             folderReady = true
@@ -49,7 +49,7 @@ final class MobileStore: ObservableObject {
         restoreBookmark()
     }
 
-    // MARK: - 조회
+    // MARK: - Queries
 
     var todayKey: String { Formatters.dateKey.string(from: Date()) }
 
@@ -65,7 +65,7 @@ final class MobileStore: ObservableObject {
         selectedDateKey = todayKey
     }
 
-    /// 지난 일기 잠금 해제(Face ID) 후 onSuccess 실행. 이미 해제됐으면 바로 실행.
+    /// Runs onSuccess after unlocking past entries (Face ID). Runs immediately if already unlocked.
     func revealPast(onSuccess: @escaping () -> Void = {}) {
         if pastRevealed {
             onSuccess()
@@ -83,9 +83,9 @@ final class MobileStore: ObservableObject {
         }
     }
 
-    // MARK: - 폴더 연결 (보안 북마크)
+    // MARK: - Folder connection (security bookmark)
 
-    /// 문서 피커로 고른 폴더를 기억한다. entries 하위 폴더가 있으면 자동으로 그쪽을 쓴다.
+    /// Remembers the folder picked in the document picker. If an "entries" subfolder exists, uses that automatically.
     func adoptFolder(_ pickedURL: URL) {
         setupError = nil
         let accessing = pickedURL.startAccessingSecurityScopedResource()
@@ -128,7 +128,7 @@ final class MobileStore: ObservableObject {
         reload()
     }
 
-    /// 폴더 연결을 끊고 온보딩으로 돌아간다.
+    /// Disconnects the folder and returns to onboarding.
     func resetFolder() {
         flushPendingSave()
         accessedBase?.stopAccessingSecurityScopedResource()
@@ -141,7 +141,7 @@ final class MobileStore: ObservableObject {
         folderReady = false
     }
 
-    // MARK: - 읽기/쓰기 (NSFileCoordinator)
+    // MARK: - Read / write (NSFileCoordinator)
 
     private func fileURL(for dateKey: String) -> URL? {
         folderURL?.appendingPathComponent("\(dateKey).md")
@@ -158,7 +158,7 @@ final class MobileStore: ObservableObject {
                 includingPropertiesForKeys: [.contentModificationDateKey]
             )) ?? []
             for url in urls {
-                // 아직 다운로드되지 않은 iCloud 파일(".파일명.icloud")은 내려받기를 요청하고 건너뛴다
+                // Request download for not-yet-downloaded iCloud files (".name.icloud") and skip them
                 if url.lastPathComponent.hasSuffix(".icloud") {
                     try? FileManager.default.startDownloadingUbiquitousItem(at: url)
                     continue
@@ -180,7 +180,7 @@ final class MobileStore: ObservableObject {
         guard let url = fileURL(for: dateKey) else { return }
         let isEmpty = text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let exists = entries.contains { $0.dateKey == dateKey }
-        if isEmpty && !exists { return } // 빈 일기는 파일을 만들지 않는다
+        if isEmpty && !exists { return } // don't create a file for an empty entry
 
         let coordinator = NSFileCoordinator()
         var coordinationError: NSError?
@@ -190,7 +190,7 @@ final class MobileStore: ObservableObject {
                 try text.write(to: destination, atomically: true, encoding: .utf8)
             } catch {
                 writeFailed = true
-                NSLog("일기 저장 실패(\(dateKey)): \(error)")
+                NSLog("entry save failed (\(dateKey)): \(error)")
             }
         }
         if coordinationError != nil || writeFailed { return }
@@ -204,7 +204,7 @@ final class MobileStore: ObservableObject {
         }
     }
 
-    /// 타이핑 도중 호출되는 디바운스 자동 저장
+    /// Debounced autosave called while typing
     func scheduleSave(_ text: String, for dateKey: String) {
         pendingSave = (text, dateKey)
         saveWorkItem?.cancel()
@@ -219,13 +219,13 @@ final class MobileStore: ObservableObject {
         save(pending.text, for: pending.dateKey)
     }
 
-    /// 백그라운드 진입 등, 예약된 저장을 즉시 반영
+    /// Flush a pending save immediately (e.g. when entering the background)
     func flushPendingSave() {
         saveWorkItem?.cancel()
         commitPendingSave()
     }
 
-    /// 표시하던 글을 마무리 저장. 내용이 비었으면 그날 파일을 정리한다.
+    /// Finalizes the shown entry. Cleans up the day's file if it's empty.
     func finalize(_ text: String, for dateKey: String) {
         saveWorkItem?.cancel()
         pendingSave = nil

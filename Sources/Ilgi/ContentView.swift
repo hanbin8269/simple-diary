@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// 좌측(캘린더 + 최근 글) / 우측(글 작성) 분할 레이아웃
+/// Split layout: left (calendar + recent entries) / right (editor).
 struct ContentView: View {
     @EnvironmentObject private var store: DiaryStore
-    // 테마 변경 시 전체 뷰 트리를 다시 그리기 위한 의존성
+    // Dependency to redraw the whole view tree when the theme changes
     @AppStorage(Theme.storageKey) private var themeID = ColorTheme.claude.rawValue
 
     var body: some View {

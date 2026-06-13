@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
-/// 첫 실행: Mac 일기장이 쓰는 iCloud Drive 폴더를 연결한다.
+/// First launch: connect the iCloud Drive folder the Mac app uses.
 struct OnboardingView: View {
     @EnvironmentObject private var store: MobileStore
     @State private var showPicker = false
@@ -60,7 +60,7 @@ struct OnboardingView: View {
     }
 }
 
-/// 폴더 선택용 UIDocumentPicker 래퍼
+/// UIDocumentPicker wrapper for choosing a folder
 struct FolderPicker: UIViewControllerRepresentable {
     let onPick: (URL) -> Void
 

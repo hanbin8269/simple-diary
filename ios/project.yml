@@ -9,7 +9,7 @@ targets:
     sources:
       - path: Sources
       - path: Assets.xcassets
-      # macOS 앱과 공유하는 파일들
+      # Files shared with the macOS app
       - path: ../Sources/Ilgi/Formatters.swift
       - path: ../Sources/Ilgi/Theme.swift
       - path: ../Sources/Ilgi/BiometricGate.swift
