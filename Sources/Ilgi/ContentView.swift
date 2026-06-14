@@ -16,6 +16,12 @@ struct ContentView: View {
 
             EditorPane()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            Divider()
+
+            TodoColumn()
+                .frame(width: 210)
+                .background(Color.primary.opacity(0.03))
         }
         .tint((ColorTheme(rawValue: themeID) ?? .claude).accent)
         .toolbar {

@@ -10,10 +10,10 @@ struct IlgiApp: App {
         Window("Simple Diary", id: "main") {
             ContentView()
                 .environmentObject(store)
-                .frame(minWidth: 720, minHeight: 560)
+                .frame(minWidth: 880, minHeight: 560)
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 920, height: 640)
+        .defaultSize(width: 1060, height: 660)
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("오늘 일기 쓰기") { store.selectToday() }
