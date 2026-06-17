@@ -25,7 +25,8 @@ language (UI strings aside); see [Conventions](#conventions).
 - **Locked past entries** — the recent-entries list (bottom-left) is locked by default.
   "Show" requires **Touch ID** (falls back to the Mac login password if fingerprint is
   unavailable). The unlocked state is never persisted, so it re-locks on every launch.
-- **Todo column** — a narrow column on the right for jotting todos. Unfinished items
+- **Todo column** — a narrow column on the right for jotting todos. Double-click an item to
+  edit it (Enter or click-away saves, Esc cancels, emptying it deletes). Unfinished items
   **carry over to today** when the day changes (shown with a ↳ badge); items completed on a
   past day are cleared. Stored locally in `~/Library/Application Support/Simple Diary/todos.json`
   (separate from the diary folder, so changing the storage location doesn't affect it).

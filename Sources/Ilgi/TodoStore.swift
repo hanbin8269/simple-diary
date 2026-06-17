@@ -61,6 +61,18 @@ final class TodoStore: ObservableObject {
         save()
     }
 
+    /// Rename an item. Empty text deletes it.
+    func update(_ item: TodoItem, text: String) {
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            items.remove(at: index)
+        } else {
+            items[index].text = trimmed
+        }
+        save()
+    }
+
     func delete(_ item: TodoItem) {
         items.removeAll { $0.id == item.id }
         save()
