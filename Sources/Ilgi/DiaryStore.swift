@@ -55,6 +55,8 @@ final class DiaryStore: ObservableObject {
     /// UserDefaults key for the user-chosen folder path (absent = default location)
     static let customDirKey = "customDataDir"
     static let appFolderName = "Simple Diary"
+    /// Posted after the storage folder changes (todos follow the diary folder).
+    static let directoryDidChange = Notification.Name("SimpleDiaryDirectoryDidChange")
 
     private var pendingSave: (text: String, dateKey: String)?
     private var saveWorkItem: DispatchWorkItem?
@@ -134,10 +136,12 @@ final class DiaryStore: ObservableObject {
         flushPendingSave()
         try? FileManager.default.createDirectory(at: newDir, withIntermediateDirectories: true)
         Self.moveEntries(from: directory, to: newDir)
+        Self.moveFile("todos.json", from: directory, to: newDir)
         UserDefaults.standard.set(newDir.path, forKey: Self.customDirKey)
         directory = newDir
         selectedDateKey = todayKey
         reload()
+        NotificationCenter.default.post(name: Self.directoryDidChange, object: nil)
     }
 
     /// Resets to the default (iCloud) location, moving existing entries along.
@@ -146,10 +150,12 @@ final class DiaryStore: ObservableObject {
         let def = Self.defaultDirectory()
         try? FileManager.default.createDirectory(at: def, withIntermediateDirectories: true)
         Self.moveEntries(from: directory, to: def)
+        Self.moveFile("todos.json", from: directory, to: def)
         UserDefaults.standard.removeObject(forKey: Self.customDirKey)
         directory = def
         selectedDateKey = todayKey
         reload()
+        NotificationCenter.default.post(name: Self.directoryDidChange, object: nil)
     }
 
     /// Moves .md files from src to dst (leaves any same-named file untouched).
@@ -162,6 +168,16 @@ final class DiaryStore: ObservableObject {
             guard !fm.fileExists(atPath: destination.path) else { continue }
             try? fm.moveItem(at: file, to: destination)
         }
+    }
+
+    /// Moves a single named file from src to dst, if present and not already there.
+    private static func moveFile(_ name: String, from src: URL, to dst: URL) {
+        let fm = FileManager.default
+        guard src.path != dst.path else { return }
+        let source = src.appendingPathComponent(name)
+        let destination = dst.appendingPathComponent(name)
+        guard fm.fileExists(atPath: source.path), !fm.fileExists(atPath: destination.path) else { return }
+        try? fm.moveItem(at: source, to: destination)
     }
 
     // MARK: - Queries

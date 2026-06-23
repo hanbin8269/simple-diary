@@ -13,6 +13,7 @@ targets:
       - path: ../Sources/Ilgi/Formatters.swift
       - path: ../Sources/Ilgi/Theme.swift
       - path: ../Sources/Ilgi/BiometricGate.swift
+      - path: ../Sources/Ilgi/TodoModel.swift
     info:
       path: Info.plist
       properties:

@@ -25,11 +25,12 @@ language (UI strings aside); see [Conventions](#conventions).
 - **Locked past entries** — the recent-entries list (bottom-left) is locked by default.
   "Show" requires **Touch ID** (falls back to the Mac login password if fingerprint is
   unavailable). The unlocked state is never persisted, so it re-locks on every launch.
-- **Todo column** — a narrow column on the right for jotting todos. Double-click an item to
-  edit it (Enter or click-away saves, Esc cancels, emptying it deletes). Unfinished items
-  **carry over to today** when the day changes (shown with a ↳ badge); items completed on a
-  past day are cleared. Stored locally in `~/Library/Application Support/Simple Diary/todos.json`
-  (separate from the diary folder, so changing the storage location doesn't affect it).
+- **Todos** — jot todos in the right-hand column (macOS) or the checklist button (iOS).
+  Edit inline (macOS: double-click; iOS: tap the row). Unfinished items **carry over to today**
+  when the day changes (shown with a ↳ badge); items completed on a past day are cleared.
+  Stored as `todos.json` in the diary folder, so it **syncs across devices via iCloud** and is
+  shared between the Mac and iOS apps. (Earlier builds kept it local in Application Support;
+  that file is migrated into the diary folder on first launch.)
 - **Export** — export all entries to a single Markdown / plain-text / JSON file via the
   toolbar share button or File menu (⌘E = Markdown).
 - **Color themes** — Settings (⌘,) offers 7 themes: **Claude (default, terracotta
@@ -125,8 +126,9 @@ Sources/Ilgi/
   CalendarView.swift   Grass-style month calendar
   EditorView.swift     Right: always-on editor (autosave, char count)
   SettingsView.swift   Settings (⌘,): theme, storage location, auto-open
-  TodoStore.swift      Rolling todo list with daily carry-over (local JSON)
+  TodoStore.swift      Rolling todo list (todos.json in the diary folder)
   TodoColumn.swift     Right-hand todo column UI
+  TodoModel.swift      TodoItem + carry-over logic (shared with iOS)
   Formatters.swift     Date formatters (shared with iOS)
   Theme.swift          Color themes + swatch picker (shared with iOS)
 scripts/
@@ -143,7 +145,8 @@ ios/                   iOS companion app (XcodeGen)
 ## iOS app (ios/)
 
 An iPhone app that reads and writes the **same iCloud Drive folder** as the Mac app, with
-the same grass calendar and a Face ID lock. Because of the iOS sandbox, on first launch you
+the same grass calendar, a Face ID lock, and the same carrying-over todos (checklist button →
+todo sheet, backed by the shared `todos.json`). Because of the iOS sandbox, on first launch you
 connect the folder once in-app via "Connect iCloud folder" by picking `iCloud Drive → Simple Diary`
 (remembered as a security-scoped bookmark; an `entries` subfolder is auto-detected). File
 access uses NSFileCoordinator.

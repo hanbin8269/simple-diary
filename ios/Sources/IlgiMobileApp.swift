@@ -17,7 +17,11 @@ struct IlgiMobileApp: App {
                     case .background, .inactive:
                         store.flushPendingSave()
                     case .active:
-                        if store.folderReady { store.reload() }
+                        if store.folderReady {
+                            store.reload()
+                            store.reloadTodos()
+                            store.applyTodoRollOver()
+                        }
                     @unknown default:
                         break
                     }

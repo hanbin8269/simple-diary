@@ -28,6 +28,7 @@ final class MobileStore: ObservableObject {
     @Published private(set) var contentVersion = 0
     @Published var folderReady = false
     @Published var setupError: String?
+    @Published private(set) var todos: [TodoItem] = []
 
     private var folderURL: URL?
     private var accessedBase: URL?
@@ -44,6 +45,8 @@ final class MobileStore: ObservableObject {
             folderURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             folderReady = true
             reload()
+            reloadTodos()
+            applyTodoRollOver()
             return
         }
         restoreBookmark()
@@ -126,6 +129,8 @@ final class MobileStore: ObservableObject {
         folderURL = subpath.isEmpty ? base : base.appendingPathComponent(subpath, isDirectory: true)
         folderReady = true
         reload()
+        reloadTodos()
+        applyTodoRollOver()
     }
 
     /// Disconnects the folder and returns to onboarding.
@@ -137,6 +142,7 @@ final class MobileStore: ObservableObject {
         UserDefaults.standard.removeObject(forKey: bookmarkKey)
         UserDefaults.standard.removeObject(forKey: subpathKey)
         entries = []
+        todos = []
         pastRevealed = false
         folderReady = false
     }
@@ -174,6 +180,74 @@ final class MobileStore: ObservableObject {
         }
         entries = loaded.sorted { $0.dateKey > $1.dateKey }
         contentVersion += 1
+    }
+
+    // MARK: - Todos (todos.json in the same iCloud folder)
+
+    private var todosURL: URL? { folderURL?.appendingPathComponent("todos.json") }
+
+    var todayTodos: [TodoItem] { todaysTodos(todos, today: todayKey) }
+    var remainingTodoCount: Int { todos.filter { $0.day == todayKey && !$0.done }.count }
+
+    func reloadTodos() {
+        guard let url = todosURL else { return }
+        var data: Data?
+        let coordinator = NSFileCoordinator()
+        var coordinationError: NSError?
+        coordinator.coordinate(readingItemAt: url, options: [], error: &coordinationError) { readURL in
+            data = try? Data(contentsOf: readURL)
+        }
+        if let data, let decoded = try? JSONDecoder().decode([TodoItem].self, from: data) {
+            todos = decoded
+        } else if data == nil {
+            try? FileManager.default.startDownloadingUbiquitousItem(at: url)
+        }
+    }
+
+    func applyTodoRollOver() {
+        let (rolled, changed) = rollOverTodos(todos, today: todayKey)
+        if changed {
+            todos = rolled
+            saveTodos()
+        }
+    }
+
+    func addTodo(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        todos.append(TodoItem(text: trimmed, day: todayKey))
+        saveTodos()
+    }
+
+    func toggleTodo(_ item: TodoItem) {
+        guard let index = todos.firstIndex(where: { $0.id == item.id }) else { return }
+        todos[index].done.toggle()
+        saveTodos()
+    }
+
+    func updateTodo(_ item: TodoItem, text: String) {
+        guard let index = todos.firstIndex(where: { $0.id == item.id }) else { return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            todos.remove(at: index)
+        } else {
+            todos[index].text = trimmed
+        }
+        saveTodos()
+    }
+
+    func deleteTodo(_ item: TodoItem) {
+        todos.removeAll { $0.id == item.id }
+        saveTodos()
+    }
+
+    private func saveTodos() {
+        guard let url = todosURL, let data = try? JSONEncoder().encode(todos) else { return }
+        let coordinator = NSFileCoordinator()
+        var coordinationError: NSError?
+        coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { writeURL in
+            try? data.write(to: writeURL, options: .atomic)
+        }
     }
 
     func save(_ text: String, for dateKey: String) {

@@ -7,6 +7,7 @@ struct EditorScreen: View {
     @State private var text = ""
     @State private var loadedKey = ""
     @State private var showBrowser = false
+    @State private var showTodos = false
     @FocusState private var editorFocused: Bool
 
     private var isToday: Bool { store.selectedDateKey == store.todayKey }
@@ -55,6 +56,14 @@ struct EditorScreen: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         store.flushPendingSave()
+                        showTodos = true
+                    } label: {
+                        Image(systemName: "checklist")
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        store.flushPendingSave()
                         showBrowser = true
                     } label: {
                         Image(systemName: "calendar")
@@ -67,6 +76,9 @@ struct EditorScreen: View {
             }
             .sheet(isPresented: $showBrowser) {
                 BrowserSheet()
+            }
+            .sheet(isPresented: $showTodos) {
+                TodoSheet()
             }
             .onAppear {
                 load(store.selectedDateKey)
